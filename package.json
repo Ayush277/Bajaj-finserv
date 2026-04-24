@@ -1,0 +1,16 @@
+{
+  "name": "bfhl-server",
+  "version": "1.0.0",
+  "description": "Node.js Express server with BFHL endpoint",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": ["express", "bfhl"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

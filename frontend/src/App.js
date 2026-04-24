@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import './App.css';
 import axios from 'axios';
+import { useState } from 'react';
+import './App.css';
 
 function App() {
   const [inputData, setInputData] = useState('');
@@ -27,7 +27,7 @@ function App() {
     }
 
     try {
-      const result = await axios.post('http://localhost:3000/bfhl', {
+      const result = await axios.post('http://localhost:8000/bfhl', {
         data: edges
       });
 

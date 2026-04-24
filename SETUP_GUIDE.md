@@ -14,17 +14,9 @@ A full-stack application for processing and analyzing hierarchical node relation
 /Users/ayush/Bajaj finserv/
 ├── server.js                 # Express backend (port 8000)
 ├── package.json              # Backend dependencies
+├── index.html                # React frontend (standalone HTML)
 ├── README.md                 # Backend documentation
-├── frontend/
-│   ├── package.json          # React dependencies
-│   ├── README.md             # Frontend documentation
-│   ├── public/
-│   │   └── index.html        # HTML entry point
-│   └── src/
-│       ├── App.js            # Main React component
-│       ├── App.css           # Styling (gradient UI)
-│       ├── index.js          # React DOM entry
-│       └── index.css         # Global styles
+├── SETUP_GUIDE.md            # This file
 └── .git/                     # Version control
 ```
 
@@ -41,22 +33,23 @@ A full-stack application for processing and analyzing hierarchical node relation
   - CORS enabled for cross-origin requests
   - Comprehensive error handling
 
-### Frontend (React)
-- **Status**: ✅ Running on port 3001
-- **Command**: `npm start` (from frontend directory)
+### Frontend (React - Standalone HTML)
+- **Status**: ✅ Ready to use
+- **File**: `index.html`
+- **Access**: Open directly in browser or serve via HTTP
 - **Features**:
-  - Beautiful gradient UI (blue & white)
   - Textarea input for node relationships
-  - Collapsible tabs for results
-  - Error handling with red banner
+  - Submit button with loading state
+  - Beautiful gradient UI
   - JSON response viewer
+  - Error handling with messages
 
 ---
 
 ## 🧪 Testing the API
 
 ### Using the Web Interface
-1. Open `http://localhost:3001` in browser
+1. Open `index.html` in your browser
 2. Enter node relationships:
    ```
    A->B
@@ -64,8 +57,8 @@ A full-stack application for processing and analyzing hierarchical node relation
    B->D
    C->D
    ```
-3. Click "Process Nodes"
-4. View results in tabs
+3. Click "Submit"
+4. View the JSON response below
 
 ### Using cURL (Command Line)
 ```bash
@@ -177,27 +170,28 @@ curl -X POST http://localhost:8000/bfhl \
 
 ## 🚀 Running the Application
 
-### Terminal 1 - Start Backend
+### Step 1 - Start Backend
 ```bash
 cd "/Users/ayush/Bajaj finserv"
 npm start
 # Server runs on http://localhost:8000
 ```
 
-### Terminal 2 - Start Frontend
+### Step 2 - Open Frontend
+- Simply open `index.html` in your web browser
+- Or serve it via a local server:
 ```bash
-cd "/Users/ayush/Bajaj finserv/frontend"
-npm start
-# App runs on http://localhost:3001 or http://localhost:3000
+# Using Python 3
+python3 -m http.server 8080
+
+# Or using Node.js
+npx http-server
 ```
 
-### Verify Both Are Running
+### Verify Backend is Running
 ```bash
-# Test backend
 curl http://localhost:8000/bfhl
-
-# Test frontend (should respond with HTML)
-curl http://localhost:3001
+# Expected response: {"operation_code":1}
 ```
 
 ---
@@ -248,13 +242,13 @@ curl http://localhost:3001
 - **Runtime**: Node.js
 - **Framework**: Express.js
 - **Port**: 8000
-- **Features**: CORS, JSON middleware, error handling
+- **Features**: CORS enabled, JSON middleware, error handling
 
 ### Frontend
-- **Library**: React 18
-- **HTTP Client**: Axios
+- **Type**: Standalone HTML with React
+- **React**: Loaded via CDN (no build step needed)
 - **Styling**: Pure CSS with gradients
-- **Port**: 3001 (or 3000)
+- **Access**: Direct browser or via HTTP server
 
 ---
 

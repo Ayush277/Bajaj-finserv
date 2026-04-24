@@ -152,10 +152,20 @@ function findRootNodes(adjacencyList, indegree) {
 
   rootNodes.sort();
 
-  return {
-    root_nodes: rootNodes,
-    has_cycle: rootNodes.length === 0 && Object.keys(indegree).length > 0
-  };
+  return rootNodes;
+}
+
+function getComponentRoots(componentNodes, componentIndegree) {
+  const rootNodes = [];
+
+  for (const componentNode of componentNodes) {
+    if (componentIndegree[componentNode] === 0) {
+      rootNodes.push(componentNode);
+    }
+  }
+
+  rootNodes.sort();
+  return rootNodes;
 }
 
 // Detect cycles using DFS
@@ -265,14 +275,13 @@ function calculateTreeDepth(nestedTree) {
       return 1;
     }
 
-    // Find maximum depth among all children
+    // DFS over all children and count nodes, not edges
     let maxChildDepth = 0;
     for (const child in node) {
       const childDepth = getMaxDepth(node[child]);
       maxChildDepth = Math.max(maxChildDepth, childDepth);
     }
 
-    // Add 1 for current node
     return 1 + maxChildDepth;
   }
 
@@ -283,8 +292,7 @@ function calculateTreeDepth(nestedTree) {
     maxDepth = Math.max(maxDepth, rootDepth);
   }
 
-  // Add 1 for the root itself
-  return maxDepth + 1;
+  return maxDepth;
 }
 
 // Find all connected components and process each separately
@@ -342,39 +350,29 @@ function processConnectedComponents(adjacencyList, indegree) {
       }
 
       // Find root nodes in this component
-      const rootNodes = [];
-      for (const componentNode of componentNodes) {
-        if (componentIndegree[componentNode] === 0) {
-          rootNodes.push(componentNode);
-        }
-      }
+      const rootNodes = getComponentRoots(componentNodes, componentIndegree);
+      const hierarchyRoots = rootNodes.length > 0 ? rootNodes : [...componentNodes].sort();
 
       // Check for cycle in this component
       const hasCycleInComponent = detectCyclesInComponent(componentAdjList, componentIndegree);
 
-      // Build tree and calculate depth only if no cycle
-      let componentTree = {};
-      let componentDepth = 0;
-
-      if (!hasCycleInComponent && rootNodes.length > 0) {
-        const componentNestedTree = buildNestedTree(componentAdjList, rootNodes);
-        componentTree = componentNestedTree;
-        componentDepth = calculateTreeDepth(componentNestedTree);
+      if (!hasCycleInComponent && hierarchyRoots.length > 0) {
+        for (const root of hierarchyRoots) {
+          const componentNestedTree = buildNestedTree(componentAdjList, [root]);
+          components.push({
+            root: root,
+            tree: componentNestedTree,
+            depth: calculateTreeDepth(componentNestedTree)
+          });
+        }
+      } else {
+        const root = hierarchyRoots.length > 0 ? hierarchyRoots[0] : [...componentNodes].sort()[0];
+        components.push({
+          root: root,
+          tree: {},
+          has_cycle: true
+        });
       }
-
-      // Create component object
-      const componentObj = {
-        root_nodes: rootNodes,
-        tree: componentTree
-      };
-
-      if (hasCycleInComponent) {
-        componentObj.has_cycle = true;
-      } else if (rootNodes.length > 0) {
-        componentObj.depth = componentDepth;
-      }
-
-      components.push(componentObj);
 
       // Mark all nodes in this component as visited
       for (const componentNode of componentNodes) {
@@ -433,17 +431,15 @@ function generateSummary(components) {
 
       // Find root with maximum depth (lexicographically smaller if tie)
       const componentDepth = component.depth;
-      const componentRoots = component.root_nodes || [];
+      const componentRoot = component.root;
 
-      if (componentRoots.length > 0) {
-        if (componentDepth > maxDepth) {
-          maxDepth = componentDepth;
-          largestTreeRoot = componentRoots[0];
-        } else if (componentDepth === maxDepth && largestTreeRoot !== null) {
-          // If tie, choose lexicographically smaller root
-          if (componentRoots[0] < largestTreeRoot) {
-            largestTreeRoot = componentRoots[0];
-          }
+      if (componentDepth > maxDepth) {
+        maxDepth = componentDepth;
+        largestTreeRoot = componentRoot;
+      } else if (componentDepth === maxDepth && largestTreeRoot !== null) {
+        // If tie, choose lexicographically smaller root
+        if (componentRoot < largestTreeRoot) {
+          largestTreeRoot = componentRoot;
         }
       }
     }
@@ -464,7 +460,6 @@ app.post('/bfhl', (req, res) => {
     // Validate request body
     if (!data || !Array.isArray(data)) {
       return res.status(400).json({
-        is_success: false,
         message: 'Invalid request. "data" field must be an array.'
       });
     }
@@ -472,7 +467,6 @@ app.post('/bfhl', (req, res) => {
     // Validate that all elements in data array are strings
     if (!data.every(item => typeof item === 'string')) {
       return res.status(400).json({
-        is_success: false,
         message: 'Invalid request. All elements in "data" array must be strings.'
       });
     }
@@ -493,7 +487,6 @@ app.post('/bfhl', (req, res) => {
     const summary = generateSummary(components);
 
     res.status(200).json({
-      is_success: true,
       user_id: "john_doe_17091999",
       email_id: "john@example.com",
       college_roll_number: "ABCD123",
@@ -504,7 +497,6 @@ app.post('/bfhl', (req, res) => {
     });
   } catch (error) {
     res.status(500).json({
-      is_success: false,
       message: 'Internal server error',
       error: error.message
     });
@@ -521,7 +513,6 @@ app.get('/bfhl', (req, res) => {
 // Error handling middleware for 404
 app.use((req, res) => {
   res.status(404).json({
-    is_success: false,
     message: 'Endpoint not found'
   });
 });
@@ -530,7 +521,6 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error('Error:', err);
   res.status(500).json({
-    is_success: false,
     message: 'An error occurred',
     error: err.message
   });

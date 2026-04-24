@@ -10,6 +10,8 @@ app.use(express.json());
 function validateNodeStrings(dataArray) {
   const validEdges = [];
   const invalidEntries = [];
+  const seenEdges = new Set();
+  const duplicateEdges = [];
 
   dataArray.forEach((entry, index) => {
     // Trim whitespace
@@ -41,16 +43,33 @@ function validateNodeStrings(dataArray) {
       return;
     }
 
-    // Valid edge
-    validEdges.push({
-      parent: parent,
-      child: child,
-      original: entry
-    });
+    // Create edge key for duplicate detection
+    const edgeKey = `${parent}->${child}`;
+
+    // Check for duplicates
+    if (seenEdges.has(edgeKey)) {
+      // Add to duplicates only once per repeated edge
+      if (!duplicateEdges.find(d => d.parent === parent && d.child === child)) {
+        duplicateEdges.push({
+          parent: parent,
+          child: child,
+          edge: edgeKey
+        });
+      }
+    } else {
+      // Valid edge - keep first occurrence
+      seenEdges.add(edgeKey);
+      validEdges.push({
+        parent: parent,
+        child: child,
+        original: entry
+      });
+    }
   });
 
   return {
     valid_edges: validEdges,
+    duplicate_edges: duplicateEdges,
     invalid_entries: invalidEntries
   };
 }
@@ -82,6 +101,7 @@ app.post('/bfhl', (req, res) => {
     res.status(200).json({
       is_success: true,
       valid_edges: validationResult.valid_edges,
+      duplicate_edges: validationResult.duplicate_edges,
       invalid_entries: validationResult.invalid_entries,
       user_id: "john_doe_17091999",
       email: "john@example.com",

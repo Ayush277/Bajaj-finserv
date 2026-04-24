@@ -6,6 +6,55 @@ const PORT = 3000;
 // Middleware
 app.use(express.json());
 
+// Validation function for node strings
+function validateNodeStrings(dataArray) {
+  const validEdges = [];
+  const invalidEntries = [];
+
+  dataArray.forEach((entry, index) => {
+    // Trim whitespace
+    const trimmed = entry.trim();
+
+    // Check if matches pattern X->Y
+    const pattern = /^([A-Z])->([A-Z])$/;
+    const match = trimmed.match(pattern);
+
+    if (!match) {
+      invalidEntries.push({
+        index: index,
+        value: entry,
+        reason: 'Invalid format. Expected single uppercase letters A-Z in format X->Y'
+      });
+      return;
+    }
+
+    const parent = match[1];
+    const child = match[2];
+
+    // Check for self-loop (A->A)
+    if (parent === child) {
+      invalidEntries.push({
+        index: index,
+        value: entry,
+        reason: 'Self-loop detected. Parent and child cannot be the same'
+      });
+      return;
+    }
+
+    // Valid edge
+    validEdges.push({
+      parent: parent,
+      child: child,
+      original: entry
+    });
+  });
+
+  return {
+    valid_edges: validEdges,
+    invalid_entries: invalidEntries
+  };
+}
+
 // POST endpoint /bfhl
 app.post('/bfhl', (req, res) => {
   try {
@@ -27,21 +76,16 @@ app.post('/bfhl', (req, res) => {
       });
     }
 
-    // Process the data
-    const numbers = data.filter(item => !isNaN(item) && item !== '');
-    const alphabets = data.filter(item => isNaN(item) && item.length === 1);
-    const highestAlphabet = alphabets.length > 0 
-      ? [alphabets.sort((a, b) => b.localeCompare(a))[0]]
-      : [];
+    // Validate node strings
+    const validationResult = validateNodeStrings(data);
 
     res.status(200).json({
       is_success: true,
+      valid_edges: validationResult.valid_edges,
+      invalid_entries: validationResult.invalid_entries,
       user_id: "john_doe_17091999",
       email: "john@example.com",
-      roll_number: "ABCD123",
-      numbers: numbers,
-      alphabets: alphabets,
-      highest_alphabet: highestAlphabet
+      roll_number: "ABCD123"
     });
   } catch (error) {
     res.status(500).json({

@@ -110,6 +110,32 @@ function buildGraphStructure(validEdges) {
   };
 }
 
+// Find root nodes in the graph
+function findRootNodes(adjacencyList, indegree) {
+  const rootNodes = [];
+
+  // Root nodes have indegree = 0
+  for (const node in indegree) {
+    if (indegree[node] === 0) {
+      rootNodes.push(node);
+    }
+  }
+
+  // Also include isolated nodes from adjacency list (nodes with outgoing edges but not in indegree)
+  for (const node in adjacencyList) {
+    if (!indegree.hasOwnProperty(node) && !rootNodes.includes(node)) {
+      rootNodes.push(node);
+    }
+  }
+
+  rootNodes.sort();
+
+  return {
+    root_nodes: rootNodes,
+    has_cycle: rootNodes.length === 0 && Object.keys(indegree).length > 0
+  };
+}
+
 // POST endpoint /bfhl
 app.post('/bfhl', (req, res) => {
   try {

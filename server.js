@@ -273,6 +273,137 @@ function calculateTreeDepth(nestedTree) {
   return maxDepth + 1;
 }
 
+// Find all connected components and process each separately
+function processConnectedComponents(adjacencyList, indegree) {
+  const visited = new Set();
+  const components = [];
+
+  // Helper function to find all nodes in a component using BFS
+  function getComponentNodes(startNode) {
+    const componentNodes = new Set();
+    const queue = [startNode];
+    componentNodes.add(startNode);
+
+    while (queue.length > 0) {
+      const node = queue.shift();
+
+      // Add children
+      if (adjacencyList[node]) {
+        for (const child of adjacencyList[node]) {
+          if (!componentNodes.has(child)) {
+            componentNodes.add(child);
+            queue.push(child);
+          }
+        }
+      }
+
+      // Add parents (by checking all nodes that have this node as child)
+      for (const parent in adjacencyList) {
+        if (adjacencyList[parent].includes(node) && !componentNodes.has(parent)) {
+          componentNodes.add(parent);
+          queue.push(parent);
+        }
+      }
+    }
+
+    return componentNodes;
+  }
+
+  // Build graph for each component
+  for (const node in indegree) {
+    if (!visited.has(node)) {
+      const componentNodes = getComponentNodes(node);
+
+      // Build adjacency list and indegree for this component
+      const componentAdjList = {};
+      const componentIndegree = {};
+
+      for (const componentNode of componentNodes) {
+        componentIndegree[componentNode] = indegree[componentNode];
+        if (adjacencyList[componentNode]) {
+          componentAdjList[componentNode] = adjacencyList[componentNode].filter(
+            child => componentNodes.has(child)
+          );
+        }
+      }
+
+      // Find root nodes in this component
+      const rootNodes = [];
+      for (const componentNode of componentNodes) {
+        if (componentIndegree[componentNode] === 0) {
+          rootNodes.push(componentNode);
+        }
+      }
+
+      // Check for cycle in this component
+      const hasCycleInComponent = detectCyclesInComponent(componentAdjList, componentIndegree);
+
+      // Build tree and calculate depth only if no cycle
+      let componentTree = {};
+      let componentDepth = 0;
+
+      if (!hasCycleInComponent && rootNodes.length > 0) {
+        const componentNestedTree = buildNestedTree(componentAdjList, rootNodes);
+        componentTree = componentNestedTree;
+        componentDepth = calculateTreeDepth(componentNestedTree);
+      }
+
+      // Create component object
+      const componentObj = {
+        root_nodes: rootNodes,
+        tree: componentTree
+      };
+
+      if (hasCycleInComponent) {
+        componentObj.has_cycle = true;
+      } else if (rootNodes.length > 0) {
+        componentObj.depth = componentDepth;
+      }
+
+      components.push(componentObj);
+
+      // Mark all nodes in this component as visited
+      for (const componentNode of componentNodes) {
+        visited.add(componentNode);
+      }
+    }
+  }
+
+  return components;
+}
+
+// Detect cycles in a specific component
+function detectCyclesInComponent(adjacencyList, indegree) {
+  const visited = new Set();
+  const recursionStack = new Set();
+
+  function dfs(node) {
+    visited.add(node);
+    recursionStack.add(node);
+
+    if (adjacencyList[node]) {
+      for (const neighbor of adjacencyList[node]) {
+        if (!visited.has(neighbor)) {
+          if (dfs(neighbor)) return true;
+        } else if (recursionStack.has(neighbor)) {
+          return true;
+        }
+      }
+    }
+
+    recursionStack.delete(node);
+    return false;
+  }
+
+  for (const node in indegree) {
+    if (!visited.has(node)) {
+      if (dfs(node)) return true;
+    }
+  }
+
+  return false;
+}
+
 // POST endpoint /bfhl
 app.post('/bfhl', (req, res) => {
   try {
@@ -300,21 +431,11 @@ app.post('/bfhl', (req, res) => {
     // Build graph structure from valid edges
     const graphStructure = buildGraphStructure(validationResult.valid_edges);
 
-    // Find root nodes
-    const rootInfo = findRootNodes(graphStructure.adjacency_list, graphStructure.indegree);
-
-    // Detect cycles
-    const hasCycle = detectCycles(graphStructure.adjacency_list, graphStructure.indegree);
-
-    // Build tree only if no cycle
-    let tree = {};
-    let nestedTree = {};
-    let treeDepth = 0;
-    if (!hasCycle && rootInfo.root_nodes.length > 0) {
-      tree = buildTree(graphStructure.adjacency_list, rootInfo.root_nodes);
-      nestedTree = buildNestedTree(graphStructure.adjacency_list, rootInfo.root_nodes);
-      treeDepth = calculateTreeDepth(nestedTree);
-    }
+    // Process connected components
+    const components = processConnectedComponents(
+      graphStructure.adjacency_list,
+      graphStructure.indegree
+    );
 
     res.status(200).json({
       is_success: true,
@@ -323,11 +444,7 @@ app.post('/bfhl', (req, res) => {
       invalid_entries: validationResult.invalid_entries,
       adjacency_list: graphStructure.adjacency_list,
       indegree: graphStructure.indegree,
-      root_nodes: rootInfo.root_nodes,
-      cycle_detected: hasCycle,
-      tree: tree,
-      nested_tree: nestedTree,
-      tree_depth: treeDepth,
+      components: components,
       user_id: "john_doe_17091999",
       email: "john@example.com",
       roll_number: "ABCD123"

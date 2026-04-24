@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BFHL Node Validator</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 960px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+            min-height: 120px;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .hint {
+            color: #999;
+            font-size: 12px;
+            margin-top: 6px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #c33;
+        }
+
+        .success-banner {
+            background: #ebfff2;
+            color: #147a3d;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #1ea95a;
+            font-size: 14px;
+        }
+
+        .response-section {
+            margin-top: 30px;
+        }
+
+        .response-title {
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 12px;
+            font-size: 18px;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .stat-card {
+            background: #f7f8ff;
+            border: 1px solid #e5e9ff;
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            color: #1f2a5e;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .section-card {
+            border: 1px solid #ececec;
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 12px;
+            background: #fff;
+        }
+
+        .section-heading {
+            font-size: 15px;
+            font-weight: 700;
+            color: #2b2b2b;
+            margin-bottom: 8px;
+        }
+
+        .chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .chip {
+            background: #f0f3ff;
+            border: 1px solid #dbe2ff;
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-size: 12px;
+            color: #31408f;
+        }
+
+        .tree-node {
+            margin-left: 14px;
+            padding-left: 10px;
+            border-left: 2px solid #e8e8e8;
+        }
+
+        .tree-node-label {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #303030;
+            margin: 5px 0;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th, td {
+            text-align: left;
+            border-bottom: 1px solid #ececec;
+            padding: 8px;
+        }
+
+        th {
+            background: #fafafa;
+            color: #4a4a4a;
+            font-weight: 600;
+        }
+
+        .response-box {
+            background: #f5f5f5;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .success {
+            color: #27ae60;
+        }
+
+        .loading {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+        }
+
+        details {
+            margin-top: 10px;
+        }
+
+        summary {
+            cursor: pointer;
+            color: #4a4a4a;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        function TreeView({ node, childrenMap }) {
+            const childKeys = Object.keys(childrenMap || {});
+
+            return (
+                <div className="tree-node">
+                    <div className="tree-node-label">{node}</div>
+                    {childKeys.map((childKey) => (
+                        <TreeView key={`${node}-${childKey}`} node={childKey} childrenMap={childrenMap[childKey]} />
+                    ))}
+                </div>
+            );
+        }
+
+        function App() {
+            const [input, setInput] = useState('');
+            const [response, setResponse] = useState(null);
+            const [error, setError] = useState(null);
+            const [loading, setLoading] = useState(false);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setError(null);
+                setResponse(null);
+                setLoading(true);
+
+                try {
+                    const nodeArray = input
+                        .split(/[\n,]/)
+                        .map(item => item.trim())
+                        .filter(item => item.length > 0);
+
+                    if (nodeArray.length === 0) {
+                        setError('Please enter at least one node (e.g., A->B)');
+                        setLoading(false);
+                        return;
+                    }
+
+                    const apiEndpoint = window.BFHL_API_URL || 'http://localhost:8000/bfhl';
+                    const res = await fetch(apiEndpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ data: nodeArray }),
+                    });
+
+                    if (!res.ok) {
+                        let apiMessage = '';
+                        try {
+                            const failedPayload = await res.json();
+                            apiMessage = failedPayload?.message || failedPayload?.error || '';
+                        } catch (parseError) {
+                            apiMessage = '';
+                        }
+                        throw new Error(apiMessage || `API call failed with status ${res.status}. Please verify backend is running and endpoint /bfhl is accessible.`);
+                    }
+
+                    const data = await res.json();
+                    setResponse(data);
+                } catch (err) {
+                    setError(
+                        err.message || 'Failed to connect to API. If opening HTML directly, start backend on http://localhost:8000 and try again.'
+                    );
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const summary = response?.summary || {};
+            const hierarchies = Array.isArray(response?.hierarchies) ? response.hierarchies : [];
+            const invalidEntries = Array.isArray(response?.invalid_entries) ? response.invalid_entries : [];
+            const duplicateEdges = Array.isArray(response?.duplicate_edges) ? response.duplicate_edges : [];
+
+            return (
+                <div className="container">
+                    <h1>BFHL Node Validator</h1>
+                    <p className="subtitle">Validate and process node relationships</p>
+
+                    <form onSubmit={handleSubmit}>
+                        <div className="form-group">
+                            <label htmlFor="nodes">Enter Node List</label>
+                            <textarea
+                                id="nodes"
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                placeholder="Enter nodes (one per line or comma-separated)&#10;Example:&#10;A->B&#10;B->C&#10;C->D"
+                                disabled={loading}
+                            />
+                            <div className="hint">
+                                Format: X-&gt;Y (e.g., A-&gt;B, B-&gt;C). Separate by newlines or commas.
+                            </div>
+                        </div>
+
+                        <button type="submit" disabled={loading}>
+                            {loading ? (
+                                <>
+                                    <span className="loading">⏳</span> Processing...
+                                </>
+                            ) : (
+                                'Submit'
+                            )}
+                        </button>
+                    </form>
+
+                    {error && <div className="error">{error}</div>}
+
+                    {response && !error && (
+                        <div className="success-banner">
+                            API call successful. Structured response is shown below.
+                        </div>
+                    )}
+
+                    {response && (
+                        <div className="response-section">
+                            <div className="response-title">✓ API Response</div>
+
+                            <div className="cards-grid">
+                                <div className="stat-card">
+                                    <div className="stat-label">Total Trees</div>
+                                    <div className="stat-value">{summary.total_trees ?? 0}</div>
+                                </div>
+                                <div className="stat-card">
+                                    <div className="stat-label">Total Cycles</div>
+                                    <div className="stat-value">{summary.total_cycles ?? 0}</div>
+                                </div>
+                                <div className="stat-card">
+                                    <div className="stat-label">Largest Tree Root</div>
+                                    <div className="stat-value">{summary.largest_tree_root || '-'}</div>
+                                </div>
+                            </div>
+
+                            <div className="section-card">
+                                <div className="section-heading">Hierarchies</div>
+                                {hierarchies.length === 0 && <div>No hierarchy data returned.</div>}
+
+                                {hierarchies.map((hierarchy, index) => {
+                                    const rootNodes = hierarchy.root_nodes || (hierarchy.root ? [hierarchy.root] : []);
+                                    const tree = hierarchy.tree || {};
+                                    const firstRootKey = rootNodes[0] || Object.keys(tree)[0];
+                                    const firstRootChildren = firstRootKey ? tree[firstRootKey] || {} : {};
+
+                                    return (
+                                        <div className="section-card" key={`hierarchy-${index}`}>
+                                            <div className="chip-row">
+                                                <span className="chip">Roots: {rootNodes.join(', ') || 'N/A'}</span>
+                                                {'depth' in hierarchy ? <span className="chip">Depth: {hierarchy.depth}</span> : null}
+                                                {'has_cycle' in hierarchy ? <span className="chip">Has Cycle: {String(hierarchy.has_cycle)}</span> : null}
+                                            </div>
+
+                                            {firstRootKey ? (
+                                                <div style={{ marginTop: '10px' }}>
+                                                    <TreeView node={firstRootKey} childrenMap={firstRootChildren} />
+                                                </div>
+                                            ) : (
+                                                <div style={{ marginTop: '10px' }}>No tree structure available.</div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="section-card">
+                                <div className="section-heading">Invalid Entries</div>
+                                {invalidEntries.length === 0 ? (
+                                    <div>None</div>
+                                ) : (
+                                    <div className="table-wrap">
+                                        <table>
+                                            <thead>
+                                                <tr>
+                                                    <th>Index</th>
+                                                    <th>Value</th>
+                                                    <th>Reason</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {invalidEntries.map((entry, idx) => (
+                                                    <tr key={`invalid-${idx}`}>
+                                                        <td>{entry.index}</td>
+                                                        <td>{entry.value}</td>
+                                                        <td>{entry.reason}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="section-card">
+                                <div className="section-heading">Duplicate Edges</div>
+                                {duplicateEdges.length === 0 ? (
+                                    <div>None</div>
+                                ) : (
+                                    <div className="chip-row">
+                                        {duplicateEdges.map((edge, idx) => (
+                                            <span className="chip" key={`duplicate-${idx}`}>{edge.edge || `${edge.parent}->${edge.child}`}</span>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <details>
+                                <summary>Raw JSON (for debugging)</summary>
+                                <div className="response-box">
+                                    <pre>{JSON.stringify(response, null, 2)}</pre>
+                                </div>
+                            </details>
+                            </div>
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

@@ -14,7 +14,8 @@ A full-stack application for processing and analyzing hierarchical node relation
 /Users/ayush/Bajaj finserv/
 ├── server.js                 # Express backend (port 8000)
 ├── package.json              # Backend dependencies
-├── index.html                # React frontend (standalone HTML)
+├── frontend/
+│   └── index.html            # React frontend (standalone HTML)
 ├── README.md                 # Backend documentation
 ├── SETUP_GUIDE.md            # This file
 └── .git/                     # Version control
@@ -35,7 +36,7 @@ A full-stack application for processing and analyzing hierarchical node relation
 
 ### Frontend (React - Standalone HTML)
 - **Status**: ✅ Ready to use
-- **File**: `index.html`
+- **File**: `frontend/index.html`
 - **Access**: Open directly in browser or serve via HTTP
 - **Features**:
   - Textarea input for node relationships
@@ -49,7 +50,7 @@ A full-stack application for processing and analyzing hierarchical node relation
 ## 🧪 Testing the API
 
 ### Using the Web Interface
-1. Open `index.html` in your browser
+1. Open `frontend/index.html` in your browser
 2. Enter node relationships:
    ```
    A->B
@@ -178,7 +179,7 @@ npm start
 ```
 
 ### Step 2 - Open Frontend
-- Simply open `index.html` in your web browser
+- Simply open `frontend/index.html` in your web browser
 - Or serve it via a local server:
 ```bash
 # Using Python 3
@@ -307,7 +308,7 @@ npm start
 
 ### Network Error in Frontend
 - Ensure backend is running on port 8000
-- Check frontend URL in App.js points to localhost:8000
+- Check API URL in `frontend/index.html` points to localhost:8000
 - Check browser console for CORS errors
 
 ---

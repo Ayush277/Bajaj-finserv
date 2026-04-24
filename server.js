@@ -136,6 +136,72 @@ function findRootNodes(adjacencyList, indegree) {
   };
 }
 
+// Detect cycles using DFS
+function detectCycles(adjacencyList, indegree) {
+  const visited = new Set();
+  const recursionStack = new Set();
+  let hasCycle = false;
+
+  // DFS helper function
+  function dfs(node) {
+    visited.add(node);
+    recursionStack.add(node);
+
+    // Visit all adjacent nodes
+    if (adjacencyList[node]) {
+      for (const neighbor of adjacencyList[node]) {
+        if (!visited.has(neighbor)) {
+          dfs(neighbor);
+        } else if (recursionStack.has(neighbor)) {
+          // Back edge found - cycle detected
+          hasCycle = true;
+        }
+      }
+    }
+
+    recursionStack.delete(node);
+  }
+
+  // Start DFS from all nodes
+  for (const node in indegree) {
+    if (!visited.has(node)) {
+      dfs(node);
+      if (hasCycle) break;
+    }
+  }
+
+  return hasCycle;
+}
+
+// Build tree structure with depth calculation (only if no cycle)
+function buildTree(adjacencyList, rootNodes) {
+  const tree = {};
+
+  function buildSubtree(node, depth = 0) {
+    tree[node] = {
+      depth: depth,
+      children: adjacencyList[node] ? [...adjacencyList[node]] : []
+    };
+
+    // Recursively build tree for children
+    if (adjacencyList[node]) {
+      for (const child of adjacencyList[node]) {
+        if (!tree[child]) {
+          buildSubtree(child, depth + 1);
+        }
+      }
+    }
+  }
+
+  // Build tree from each root node
+  for (const root of rootNodes) {
+    buildSubtree(root, 0);
+  }
+
+  return tree;
+}
+
+
 // POST endpoint /bfhl
 app.post('/bfhl', (req, res) => {
   try {
@@ -163,6 +229,18 @@ app.post('/bfhl', (req, res) => {
     // Build graph structure from valid edges
     const graphStructure = buildGraphStructure(validationResult.valid_edges);
 
+    // Find root nodes
+    const rootInfo = findRootNodes(graphStructure.adjacency_list, graphStructure.indegree);
+
+    // Detect cycles
+    const hasCycle = detectCycles(graphStructure.adjacency_list, graphStructure.indegree);
+
+    // Build tree only if no cycle
+    let tree = {};
+    if (!hasCycle && rootInfo.root_nodes.length > 0) {
+      tree = buildTree(graphStructure.adjacency_list, rootInfo.root_nodes);
+    }
+
     res.status(200).json({
       is_success: true,
       valid_edges: validationResult.valid_edges,
@@ -170,6 +248,9 @@ app.post('/bfhl', (req, res) => {
       invalid_entries: validationResult.invalid_entries,
       adjacency_list: graphStructure.adjacency_list,
       indegree: graphStructure.indegree,
+      root_nodes: rootInfo.root_nodes,
+      cycle_detected: hasCycle,
+      tree: tree,
       user_id: "john_doe_17091999",
       email: "john@example.com",
       roll_number: "ABCD123"

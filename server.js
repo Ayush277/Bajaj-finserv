@@ -19,6 +19,14 @@ app.post('/bfhl', (req, res) => {
       });
     }
 
+    // Validate that all elements in data array are strings
+    if (!data.every(item => typeof item === 'string')) {
+      return res.status(400).json({
+        is_success: false,
+        message: 'Invalid request. All elements in "data" array must be strings.'
+      });
+    }
+
     // Process the data
     const numbers = data.filter(item => !isNaN(item) && item !== '');
     const alphabets = data.filter(item => isNaN(item) && item.length === 1);

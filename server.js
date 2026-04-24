@@ -201,6 +201,36 @@ function buildTree(adjacencyList, rootNodes) {
   return tree;
 }
 
+// Build nested tree object from adjacency list starting from roots
+function buildNestedTree(adjacencyList, rootNodes) {
+  const nestedTree = {};
+
+  function buildNested(node, visited = new Set()) {
+    if (visited.has(node)) {
+      return {}; // Prevent infinite loops
+    }
+
+    visited.add(node);
+    const nested = {};
+
+    // Add children as nested objects
+    if (adjacencyList[node]) {
+      for (const child of adjacencyList[node]) {
+        nested[child] = buildNested(child, new Set(visited));
+      }
+    }
+
+    return nested;
+  }
+
+  // Build nested structure from each root
+  for (const root of rootNodes) {
+    nestedTree[root] = buildNested(root);
+  }
+
+  return nestedTree;
+}
+
 
 // POST endpoint /bfhl
 app.post('/bfhl', (req, res) => {
@@ -237,8 +267,10 @@ app.post('/bfhl', (req, res) => {
 
     // Build tree only if no cycle
     let tree = {};
+    let nestedTree = {};
     if (!hasCycle && rootInfo.root_nodes.length > 0) {
       tree = buildTree(graphStructure.adjacency_list, rootInfo.root_nodes);
+      nestedTree = buildNestedTree(graphStructure.adjacency_list, rootInfo.root_nodes);
     }
 
     res.status(200).json({
@@ -251,6 +283,7 @@ app.post('/bfhl', (req, res) => {
       root_nodes: rootInfo.root_nodes,
       cycle_detected: hasCycle,
       tree: tree,
+      nested_tree: nestedTree,
       user_id: "john_doe_17091999",
       email: "john@example.com",
       roll_number: "ABCD123"

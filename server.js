@@ -74,6 +74,42 @@ function validateNodeStrings(dataArray) {
   };
 }
 
+// Build adjacency list and track indegree from valid edges
+function buildGraphStructure(validEdges) {
+  const adjacencyList = {};
+  const indegree = {};
+
+  validEdges.forEach(edge => {
+    const { parent, child } = edge;
+
+    // Initialize parent in adjacency list if not exists
+    if (!adjacencyList[parent]) {
+      adjacencyList[parent] = [];
+    }
+
+    // Add child to parent's adjacency list
+    adjacencyList[parent].push(child);
+
+    // Initialize indegree for parent if not exists
+    if (!indegree[parent]) {
+      indegree[parent] = 0;
+    }
+
+    // Initialize indegree for child if not exists
+    if (!indegree[child]) {
+      indegree[child] = 0;
+    }
+
+    // Increment indegree of child
+    indegree[child]++;
+  });
+
+  return {
+    adjacency_list: adjacencyList,
+    indegree: indegree
+  };
+}
+
 // POST endpoint /bfhl
 app.post('/bfhl', (req, res) => {
   try {
@@ -98,11 +134,16 @@ app.post('/bfhl', (req, res) => {
     // Validate node strings
     const validationResult = validateNodeStrings(data);
 
+    // Build graph structure from valid edges
+    const graphStructure = buildGraphStructure(validationResult.valid_edges);
+
     res.status(200).json({
       is_success: true,
       valid_edges: validationResult.valid_edges,
       duplicate_edges: validationResult.duplicate_edges,
       invalid_entries: validationResult.invalid_entries,
+      adjacency_list: graphStructure.adjacency_list,
+      indegree: graphStructure.indegree,
       user_id: "john_doe_17091999",
       email: "john@example.com",
       roll_number: "ABCD123"

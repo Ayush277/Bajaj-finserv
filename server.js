@@ -404,6 +404,44 @@ function detectCyclesInComponent(adjacencyList, indegree) {
   return false;
 }
 
+// Generate summary from components
+function generateSummary(components) {
+  let totalTrees = 0;
+  let totalCycles = 0;
+  let largestTreeRoot = null;
+  let maxDepth = 0;
+
+  for (const component of components) {
+    if (component.has_cycle) {
+      totalCycles++;
+    } else if (component.depth !== undefined && component.depth > 0) {
+      totalTrees++;
+
+      // Find root with maximum depth (lexicographically smaller if tie)
+      const componentDepth = component.depth;
+      const componentRoots = component.root_nodes || [];
+
+      if (componentRoots.length > 0) {
+        if (componentDepth > maxDepth) {
+          maxDepth = componentDepth;
+          largestTreeRoot = componentRoots[0];
+        } else if (componentDepth === maxDepth && largestTreeRoot !== null) {
+          // If tie, choose lexicographically smaller root
+          if (componentRoots[0] < largestTreeRoot) {
+            largestTreeRoot = componentRoots[0];
+          }
+        }
+      }
+    }
+  }
+
+  return {
+    total_trees: totalTrees,
+    total_cycles: totalCycles,
+    largest_tree_root: largestTreeRoot
+  };
+}
+
 // POST endpoint /bfhl
 app.post('/bfhl', (req, res) => {
   try {
@@ -437,17 +475,18 @@ app.post('/bfhl', (req, res) => {
       graphStructure.indegree
     );
 
+    // Generate summary
+    const summary = generateSummary(components);
+
     res.status(200).json({
       is_success: true,
-      valid_edges: validationResult.valid_edges,
-      duplicate_edges: validationResult.duplicate_edges,
-      invalid_entries: validationResult.invalid_entries,
-      adjacency_list: graphStructure.adjacency_list,
-      indegree: graphStructure.indegree,
-      components: components,
       user_id: "john_doe_17091999",
-      email: "john@example.com",
-      roll_number: "ABCD123"
+      email_id: "john@example.com",
+      college_roll_number: "ABCD123",
+      hierarchies: components,
+      invalid_entries: validationResult.invalid_entries,
+      duplicate_edges: validationResult.duplicate_edges,
+      summary: summary
     });
   } catch (error) {
     res.status(500).json({

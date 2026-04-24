@@ -78,9 +78,17 @@ function validateNodeStrings(dataArray) {
 function buildGraphStructure(validEdges) {
   const adjacencyList = {};
   const indegree = {};
+  const childrenWithParent = new Set(); // Track children that already have a parent
 
   validEdges.forEach(edge => {
     const { parent, child } = edge;
+
+    // Skip if child already has a parent (keep first occurrence)
+    if (childrenWithParent.has(child)) {
+      return;
+    }
+
+    childrenWithParent.add(child);
 
     // Initialize parent in adjacency list if not exists
     if (!adjacencyList[parent]) {
@@ -231,6 +239,39 @@ function buildNestedTree(adjacencyList, rootNodes) {
   return nestedTree;
 }
 
+// Calculate tree depth - number of nodes in longest root to leaf path
+function calculateTreeDepth(nestedTree) {
+  if (Object.keys(nestedTree).length === 0) {
+    return 0;
+  }
+
+  function getMaxDepth(node) {
+    // If node is empty object (leaf), it counts as 1 node
+    if (Object.keys(node).length === 0) {
+      return 1;
+    }
+
+    // Find maximum depth among all children
+    let maxChildDepth = 0;
+    for (const child in node) {
+      const childDepth = getMaxDepth(node[child]);
+      maxChildDepth = Math.max(maxChildDepth, childDepth);
+    }
+
+    // Add 1 for current node
+    return 1 + maxChildDepth;
+  }
+
+  // Find the maximum depth across all roots
+  let maxDepth = 0;
+  for (const root in nestedTree) {
+    const rootDepth = getMaxDepth(nestedTree[root]);
+    maxDepth = Math.max(maxDepth, rootDepth);
+  }
+
+  // Add 1 for the root itself
+  return maxDepth + 1;
+}
 
 // POST endpoint /bfhl
 app.post('/bfhl', (req, res) => {
@@ -268,9 +309,11 @@ app.post('/bfhl', (req, res) => {
     // Build tree only if no cycle
     let tree = {};
     let nestedTree = {};
+    let treeDepth = 0;
     if (!hasCycle && rootInfo.root_nodes.length > 0) {
       tree = buildTree(graphStructure.adjacency_list, rootInfo.root_nodes);
       nestedTree = buildNestedTree(graphStructure.adjacency_list, rootInfo.root_nodes);
+      treeDepth = calculateTreeDepth(nestedTree);
     }
 
     res.status(200).json({
@@ -284,6 +327,7 @@ app.post('/bfhl', (req, res) => {
       cycle_detected: hasCycle,
       tree: tree,
       nested_tree: nestedTree,
+      tree_depth: treeDepth,
       user_id: "john_doe_17091999",
       email: "john@example.com",
       roll_number: "ABCD123"
